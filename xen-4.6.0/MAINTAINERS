@@ -1,0 +1,423 @@
+
+	List of maintainers and how to submit changes
+	=============================================
+
+Please try to follow the guidelines below.  This will make things
+easier on the maintainers.  Not all of these guidelines matter for every
+trivial patch so apply some common sense.
+
+1.	Always _test_ your changes, however small, on at least 4 or
+	5 people, preferably many more.
+
+2.	Make sure your changes compile correctly in multiple
+	configurations. For example, both 32- and 64-bit x86.
+
+3.	Make a patch available to the relevant maintainer in the list. Use
+	'diff -u' to make the patch easy to merge. Be prepared to get your
+	changes sent back with seemingly silly requests about formatting
+	and variable names.  These aren't as silly as they seem. One
+	job the maintainers do is to keep things looking the same.
+
+	PLEASE see http://wiki.xen.org/wiki/Submitting_Xen_Patches for
+	hints on how to submit a patch to xen-unstable in a suitable
+	form.
+
+	PLEASE try to include any credit lines you want added with the
+	patch. It avoids people being missed off by mistake and makes
+	it easier to know who wants adding and who doesn't.
+
+	PLEASE document known bugs. If it doesn't work for everything
+	or does something very odd once a month document it.
+
+	PLEASE remember that submissions must be made under the terms
+	of the "Developer's Certificate of Origin" (DCO) and should include
+	a Signed-off-by: line.
+
+4.	Make sure you have the right to send any changes you make. If you
+	do changes at work you may find your employer owns the patch
+	not you.
+
+5.	Happy hacking.
+
+
+	Stable Release Maintenance
+	==========================
+
+The policy for inclusion in a Xen stable release is different to that
+for inclusion in xen-unstable.
+
+Please see http://wiki.xen.org/wiki/Xen_Maintenance_Releases for more
+information.
+
+Backport requests should be made on the xen-devel@lists.xenproject.org
+list. Remember to copy the appropriate stable branch maintainer.
+
+The maintainer for this branch is:
+
+        Jan Beulich <jbeulich@suse.com>
+
+Tools backport requests should also be copied to:
+
+        Ian Jackson <Ian.Jackson@eu.citrix.com>
+
+
+	Unstable Subsystem Maintainers
+	==============================
+
+Descriptions of section entries:
+
+	M: Mail patches to: FullName <address@domain>
+	L: Mailing list that is relevant to this area
+	W: Web-page with status/info
+	T: SCM tree type and location.  Type is one of: git, hg, quilt, stgit.
+	S: Status, one of the following:
+	   Supported:	Someone is actually paid to look after this.
+	   Maintained:	Someone actually looks after it.
+	   Odd Fixes:	It has a maintainer but they don't have time to do
+			much other than throw the odd patch in. See below..
+	   Orphan:	No current maintainer [but maybe you could take the
+			role as you write your new code].
+	   Obsolete:	Old code. Something tagged obsolete generally means
+			it has been replaced by a better system and you
+			should be using that.
+	F: Files and directories with wildcard patterns.
+	   A trailing slash includes all files and subdirectory files.
+	   F:	drivers/net/	all files in and below drivers/net
+	   F:	drivers/net/*	all files in drivers/net, but not below
+	   F:	*/net/*		all files in "any top level directory"/net
+	   One pattern per line.  Multiple F: lines acceptable.
+	X: Files and directories that are NOT maintained, same rules as F:
+	   Files exclusions are tested before file matches.
+	   Can be useful for excluding a specific subdirectory, for instance:
+	   F:	net/
+	   X:	net/ipv6/
+	   matches all files in and below net excluding net/ipv6/
+	K: Keyword perl extended regex pattern to match content in a
+	   patch or file.  For instance:
+	   K: of_get_profile
+	      matches patches or files that contain "of_get_profile"
+	   K: \b(printk|pr_(info|err))\b
+	      matches patches or files that contain one or more of the words
+	      printk, pr_info or pr_err
+	   One regex pattern per line.  Multiple K: lines acceptable.
+
+Maintainers List (try to look for most precise areas first)
+
+		-----------------------------------
+
+ACPI
+M:	Jan Beulich <jbeulich@suse.com>
+S:	Supported
+F:	xen/arch/x86/acpi/
+F:	xen/drivers/acpi/
+F:	xen/include/acpi/
+
+AMD IOMMU
+M:	Suravee Suthikulpanit <suravee.suthikulpanit@amd.com>
+M:	Aravind Gopalakrishnan <Aravind.Gopalakrishnan@amd.com>
+S:	Maintained
+F:	xen/drivers/passthrough/amd/
+
+AMD SVM
+M:	Boris Ostrovsky <boris.ostrovsky@oracle.com>
+M:	Suravee Suthikulpanit <suravee.suthikulpanit@amd.com>
+M:	Aravind Gopalakrishnan <Aravind.Gopalakrishnan@amd.com>
+S:	Supported
+F:	xen/arch/x86/hvm/svm/
+
+ARINC653 SCHEDULER
+M:	Josh Whitehead <josh.whitehead@dornerworks.com>
+M:	Robert VanVossen <robert.vanvossen@dornerworks.com>
+S:	Supported
+F:	xen/common/sched_arinc653.c
+F:	tools/libxc/xc_arinc653.c
+
+ARM (W/ VIRTUALISATION EXTENSIONS) ARCHITECTURE
+M:	Ian Campbell <ian.campbell@citrix.com>
+M:	Stefano Stabellini <stefano.stabellini@citrix.com>
+S:	Supported
+L:	xen-devel@lists.xen.org
+F:	xen/arch/arm/
+F:	xen/include/asm-arm/
+F:	xen/drivers/char/dt-uart.c
+F:	xen/drivers/char/exynos4210-uart.c
+F:	xen/drivers/char/omap-uart.c
+F:	xen/drivers/char/pl011.c
+F:	xen/drivers/passthrough/arm/
+
+HISILICON HIP04 SUPPORT
+M:	Zoltan Kiss <zoltan.kiss@huawei.com>
+S:	Supported
+F:	xen/arch/arm/gic-hip04.c
+
+CPU POOLS
+M:	Juergen Gross <jgross@suse.com>
+S:	Supported
+F:	xen/common/cpupool.c
+
+DEVICE TREE
+M:	Ian Campbell <ian.campbell@citrix.com>
+M:	Stefano Stabellini <stefano.stabellini@citrix.com>
+S:	Supported
+F:	xen/common/libfdt/
+F:	xen/common/device_tree.c
+F:	xen/include/xen/libfdt/
+F:	xen/include/xen/device_tree.h
+F:	xen/drivers/passthrough/device_tree.c
+
+EFI
+M:     Jan Beulich <jbeulich@suse.com>
+S:     Supported
+F:     xen/arch/x86/efi/
+F:     xen/common/efi/
+F:     xen/include/efi/
+F:     xen/include/asm-x86/efi*.h
+F:     xen/include/asm-x86/x86_*/efi*.h
+
+EVENT CHANNELS (FIFO-BASED ABI)
+M:	David Vrabel <david.vrabel@citrix.com>
+S:	Supported
+F:	xen/common/event_fifo.c
+F:	xen/include/xen/event_fifo.h
+
+GDBSX DEBUGGER
+M:	Mukesh Rathor <mukesh.rathor@oracle.com>
+S:	Supported
+F:	xen/arch/x86/debug.c
+F:	tools/debugger/gdbsx/
+
+KDD DEBUGGER
+M:	Tim Deegan <tim@xen.org>
+S:	Odd Fixes
+F:	tools/debugger/kdd/
+
+INTEL(R) TRUSTED EXECUTION TECHNOLOGY (TXT)
+M:	Gang Wei <gang.wei@intel.com>
+M:	Shane Wang <shane.wang@intel.com>
+S:	Supported
+F:	xen/arch/x86/tboot.c
+F:	xen/include/asm-x86/tboot.h
+
+INTEL(R) VT FOR DIRECTED I/O (VT-D)
+M:	Yang Zhang <yang.z.zhang@intel.com>
+M:	Kevin Tian <kevin.tian@intel.com>
+S:	Supported
+F:	xen/drivers/passthrough/vtd/
+
+INTEL(R) VT FOR X86 (VT-X)
+M:	Jun Nakajima <jun.nakajima@intel.com>
+M:	Eddie Dong <eddie.dong@intel.com>
+M:	Kevin Tian <kevin.tian@intel.com>
+S:	Supported
+F:	xen/arch/x86/hvm/vmx/
+F:	xen/arch/x86/mm/hap/p2m-ept.c
+F:	xen/include/asm-x86/hvm/vmx/
+
+IOMMU VENDOR INDEPENDENT CODE
+M:	Jan Beulich <jbeulich@suse.com>
+S:	Supported
+F:	xen/drivers/passthrough/
+X:	xen/drivers/passthrough/amd/
+X:	xen/drivers/passthrough/arm/
+X:	xen/drivers/passthrough/vtd/
+X:	xen/drivers/passthrough/device_tree.c
+F:	xen/include/xen/iommu.h
+
+KEXEC
+M:      David Vrabel <david.vrabel@citrix.com>
+S:      Supported
+F:      xen/common/{kexec,kimage}.c
+F:      xen/include/{kexec,kimage}.h
+F:      xen/arch/x86/machine_kexec.c
+F:      xen/arch/x86/x86_64/kexec_reloc.S
+
+MACHINE CHECK (MCA) & RAS
+M:	Christoph Egger <chegger@amazon.de>
+M:	Liu Jinsong <jinsong.liu@alibaba-inc.com>
+S:	Supported
+F:	xen/arch/x86/cpu/mcheck/
+
+MINI-OS
+M:	Stefano Stabellini <stefano.stabellini@eu.citrix.com>
+M:	Samuel Thibault <samuel.thibault@ens-lyon.org>
+S:	Supported
+F:	config/MiniOS.mk
+F:	extras/mini-os/
+
+OCAML TOOLS
+M:	David Scott <dave@recoil.org>
+S:	Supported
+F:	tools/ocaml/
+
+OVMF UPSTREAM
+M:	Anthony PERARD <anthony.perard@citrix.com>
+M:	Wei Liu <wei.liu2@citrix.com>
+S:	Supported
+T:	git git://xenbits.xen.org/ovmf.git
+
+POWER MANAGEMENT
+M:	Jan Beulich <jbeulich@suse.com>
+M:	Liu Jinsong <jinsong.liu@alibaba-inc.com>
+S:	Supported
+F:	xen/arch/x86/acpi/
+X:	xen/arch/x86/acpi/boot.c
+X:	xen/arch/x86/acpi/lib.c
+F:	xen/drivers/cpufreq/
+F:	xen/include/acpi/cpufreq/
+
+QEMU-DM
+M:	Ian Jackson <ian.jackson@eu.citrix.com>
+S:	Supported
+T:	git git://xenbits.xen.org/qemu-xen-*.git
+
+QEMU UPSTREAM
+M:	Stefano Stabellini <stefano.stabellini@eu.citrix.com>
+S:	Supported
+T:	git git://xenbits.xen.org/qemu-upstream-*.git
+
+REMUS
+M:	Shriram Rajagopalan <rshriram@cs.ubc.ca>
+M:	Yang Hongyang <yanghy@cn.fujitsu.com>
+S:	Maintained
+F:	docs/README.remus
+F:	tools/blktap2/drivers/block-remus.c
+F:	tools/blktap2/drivers/hashtable*
+F:	tools/libxl/libxl_remus_*
+F:	tools/libxl/libxl_netbuffer.c
+F:	tools/libxl/libxl_nonetbuffer.c
+F:	tools/hotplug/Linux/remus-netbuf-setup
+F:	tools/hotplug/Linux/block-drbd-probe
+
+RTDS SCHEDULER
+M:	Dario Faggioli <dario.faggioli@citrix.com>
+S:	Supported
+F:	xen/common/sched_rt.c
+
+SCHEDULING
+M:	George Dunlap <george.dunlap@eu.citrix.com>
+S:	Supported
+F:	xen/common/sched*
+
+SEABIOS UPSTREAM
+M:	Ian Campbell <ian.campbell@citrix.com>
+S:	Supported
+T:	git git://xenbits.xen.org/seabios.git
+
+STUB DOMAINS
+M:	Stefano Stabellini <stefano.stabellini@eu.citrix.com>
+M:	Samuel Thibault <samuel.thibault@ens-lyon.org>
+S:	Supported
+F:	config/Stubdom.mk.in
+F:	m4/stubdom.m4
+F:	stubdom/
+
+TOOLSTACK
+M:	Ian Jackson <ian.jackson@eu.citrix.com>
+M:	Stefano Stabellini <stefano.stabellini@eu.citrix.com>
+M:	Ian Campbell <ian.campbell@citrix.com>
+M:	Wei Liu <wei.liu2@citrix.com>
+S:	Supported
+F:	autogen.sh
+F:	config/*.in
+F:	install.sh
+F:	m4/
+F:	configure
+F:	docs/Makefile
+F:	stubdom/Makefile
+F:	*.ac
+F:	*/configure
+F:	*/*.ac
+F:	tools/
+
+TRANSCENDENT MEMORY (TMEM)
+M:	Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+W:	http://oss.oracle.com/projects/tmem
+S:	Supported
+F:	xen/common/tmem*
+F:	xen/include/xen/tmem*
+F:	docs/misc/tmem*
+
+UNMODIFIED LINUX PV DRIVERS
+M:	Keir Fraser <keir@xen.org>
+M:	Jan Beulich <jbeulich@suse.com>
+S:	Obsolete
+L:	xen-devel@lists.xen.org
+F:	unmodified_drivers/linux-2.6/
+
+USB PV DRIVERS
+M:	Noboru Iwamatsu <n_iwamatsu@jp.fujitsu.com>
+S:	Supported
+T:	hg http://xenbits.xen.org/linux-2.6.18-xen.hg
+F:	drivers/xen/usb*/
+
+VTPM
+M:	Daniel De Graaf <dgdegra@tycho.nsa.gov>
+S:	Supported
+F:	extras/mini-os/tpm*
+F:	extras/mini-os/include/tpm*
+F:	stubdom/vtpm/
+F:	stubdom/vtpmmgr/
+F:	docs/misc/vtpm.txt
+
+X86 ARCHITECTURE
+M:	Keir Fraser <keir@xen.org>
+M:	Jan Beulich <jbeulich@suse.com>
+M:	Andrew Cooper <andrew.cooper3@citrix.com>
+S:	Supported
+L:	xen-devel@lists.xen.org
+F:	xen/arch/x86/
+F:	xen/include/asm-x86/
+F:	tools/firmware/hvmloader/
+F:	tools/tests/x86_emulator/
+
+X86 MEMORY MANAGEMENT
+M:	George Dunlap <george.dunlap@eu.citrix.com>
+S:	Supported
+F:	xen/arch/x86/mm/
+
+X86 MEMORY SHARING AND PAGING
+S:	Orphaned
+F:	xen/arch/x86/mm/mem_sharing.c
+F:	xen/arch/x86/mm/mem_paging.c
+F:	tools/memshr
+
+X86 SHADOW PAGETABLES
+M:	Tim Deegan <tim@xen.org>
+S:	Maintained
+F:	xen/arch/x86/mm/shadow/
+
+VM EVENT AND MEM ACCESS
+M:	Razvan Cojocaru <rcojocaru@bitdefender.com>
+M:	Tamas K Lengyel <tamas@tklengyel.com>
+S:	Supported
+F:	xen/common/vm_event.c
+F:	xen/common/mem_access.c
+F:	xen/arch/x86/hvm/event.c
+F:	xen/arch/x86/monitor.c
+F:	xen/arch/x86/vm_event.c
+F:	tools/tests/xen-access
+
+XENTRACE
+M:	George Dunlap <george.dunlap@eu.citrix.com>
+S:	Supported
+F:	tools/xentrace/
+F:	xen/common/trace.c
+
+XSM/FLASK
+M:  Daniel De Graaf <dgdegra@tycho.nsa.gov>
+S:  Supported
+F:  tools/flask/
+F:  xen/include/xsm/
+F:  xen/xsm/
+F:  docs/misc/xsm-flask.txt
+
+THE REST
+M:	Ian Campbell <ian.campbell@citrix.com>
+M:	Ian Jackson <ian.jackson@eu.citrix.com>
+M:	Jan Beulich <jbeulich@suse.com>
+M:	Keir Fraser <keir@xen.org>
+M:	Tim Deegan <tim@xen.org>
+L:	xen-devel@lists.xen.org
+S:	Supported
+F:	*
+F:	*/

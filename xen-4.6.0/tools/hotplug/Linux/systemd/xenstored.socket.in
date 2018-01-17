@@ -1,0 +1,13 @@
+[Unit]
+Description=xenstore socket
+Requires=proc-xen.mount var-lib-xenstored.mount
+After=proc-xen.mount var-lib-xenstored.mount
+ConditionPathExists=/proc/xen/capabilities
+
+[Socket]
+ListenStream=/var/run/xenstored/socket
+SocketMode=0600
+Service=xenstored.service
+
+[Install]
+WantedBy=sockets.target
