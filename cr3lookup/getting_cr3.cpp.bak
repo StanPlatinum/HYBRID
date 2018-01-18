@@ -1,0 +1,484 @@
+#include "cstdio"
+#include "cstdlib"
+#include "iostream"
+#include "fstream"
+#include "sstream"
+#include "string"
+#include "cstring"
+#include "map"
+#include "vector"
+#include <time.h>
+
+extern "C" {
+    #include "libvmi/libvmi.h"
+    #include "unistd.h"
+    #include "sys/stat.h"
+    #include "sys/socket.h"
+    #include "netinet/in.h"
+    #include "arpa/inet.h"
+    #include "inttypes.h"
+    #include "sys/types.h"
+    //#include "linux/time.h"
+    //#include "linux/rtc.h"
+}
+
+using namespace std;
+
+#define fail(retvar, msg, args...) { \
+            fprintf(stderr, "FAIL: Line %d: " msg, __LINE__, ##args); return retvar; }
+#define assert_success(op) if ((op)) { fail(-1, #op " ret != VMI_SUCCESS"); }
+#define assert_valid_ptr(op) if (!(op)) { fail(0, #op, " ret == null"); }
+#define _(op) op
+#define step(n, comment, wrapper, op) { cout << "\033[32m" << n << " - " << comment << "\033[0m" << endl; wrapper(op); }
+
+typedef unsigned long addrtype;
+
+string ntoa(unsigned ip)
+{
+    in_addr in;
+    in.s_addr = ip;
+    string ret = inet_ntoa(in);
+    return ret;
+}
+
+struct Portinfo
+{
+    int pid, inode;
+    short uid;
+    long atime, mtime, ctime;
+    int64_t timestamp;
+    unsigned long mem;
+    string proc_name, proto_name, cmdline;
+    vector<string> files;
+    unsigned saddr, daddr, rcv_saddr;
+    unsigned short sport, dport;
+
+    string to_s()
+//    const string & to_s()
+    {
+        int i;
+        stringstream ss; ss.clear();
+        ss << "[" << dec << pid << "]" << proc_name << " user #" << uid << "  Memory " << mem << "k" << " \tcmd: " << cmdline << endl;
+        ss << "  open files: " << files.size();
+ //       for (i=0; i<files.size(); i++)
+ //           ss << files[i] << " ";
+        ss << endl;
+        ss << "  inode 0x" << hex << inode << dec << " " << proto_name << " " << ntoa(saddr) << " : " << sport << " <-> " << ntoa(daddr) << " : " << dport << endl;
+        return ss.str();
+    }
+
+    string to_json()
+    {
+#define json(x) "\"" << #x << "\" : " << x << ", "
+#define json_str(x) "\"" << #x "\" : \"" << x << "\", "
+#define ntoa(x) "\"" << #x << "\" : " << inet_ntoa(*reinterpret_cast<in_addr *>(&(x))) << ", "
+        int i; stringstream ss; ss.clear();
+        ss << "{ ";
+        /*ss << dec << json(pid) << json(inode) << json(uid) << json(mem) <<
+              json_str(proc_name) << json_str(proto_name) << json_str(cmdline) << 
+              // address in big-endian
+              json(saddr) << json(daddr) << json(sport) << json(dport) << endl;*/
+        ss << dec << json(pid) << json(inode) << json(uid) << json(mem) <<
+              json_str(proc_name) << json_str(proto_name) << json_str(cmdline) << json(atime) << 
+              json(ctime) << json(mtime) << ntoa(saddr) << json(sport);
+        ss << dec << ntoa(rcv_saddr);
+        ss << dec << ntoa(daddr) << json(dport) << json(timestamp) << endl;
+        ss << "\"files\" : [ ";
+        for (i=0; i<files.size(); i++)
+        {
+            ss << "\"" << files[i] << "\"";
+            if (i<files.size()-1) ss << ",";
+            ss << " ";
+        }
+        ss << "] }";
+
+        return ss.str();
+    }
+};
+
+class VMIHelper
+{
+    public:
+        vmi_instance_t v;
+        int pid;
+
+    public:
+        VMIHelper() : pid(0){}
+        VMIHelper(string & name) : pid(0) { init(name); }
+        ~VMIHelper() { resume(); vmi_destroy(v); }
+
+        void init(string & name)
+        {
+            assert_success( vmi_init(&v, VMI_AUTO | VMI_INIT_COMPLETE, name.c_str()) );
+            cout << endl;
+        }
+        void init(char *name)
+        {
+            assert_success( vmi_init(&v, VMI_AUTO | VMI_INIT_COMPLETE, name) );
+            cout << endl;
+        }
+
+        int pause() { return vmi_pause_vm(v); }
+        void resume() { vmi_resume_vm(v); }
+
+        vmi_instance_t & operator()() { return v; }
+
+        template <typename T>
+        T get(addr_t vaddr)
+        {
+         //   cout << "read " << vaddr << endl; cout.flush();
+            T ret;vmi_read_va(v, vaddr, pid, &ret, sizeof(T));
+            return ret;
+        }
+
+        char *get(addr_t vaddr)
+        {
+            //cout << "read char* " << vaddr << endl; cout.flush();
+            char *ret; assert_valid_ptr( ret = vmi_read_str_va(v, vaddr, pid) );
+            return ret;
+        }
+
+        addrtype operator *(addrtype vaddr)
+        {
+            return get<addrtype>(vaddr);
+        }
+};
+
+VMIHelper vmi;
+char vm_name[] = "ubuntu-tracepoint";
+char vm_sym[] = "./System.map-4.4.0-31-generic";
+char vm_offset[] = "./tracepoint-ubuntu.offset";
+map<string, int> sem;   //semantic table
+vector<Portinfo> result;
+Portinfo curr_entry;
+
+void print_sem()
+{
+    for (map<string, int>::iterator it = sem.begin();
+         it != sem.end(); ++it)
+         cout << it->first << " : 0x" << hex << it->second << endl;
+}
+
+void print_result()
+{
+    int i;
+    cout << "[ " << endl;
+    for (i=0; i<result.size(); i++) {
+        cout << result[i].to_json();
+        if (i<result.size()-1) cout << ",";
+        cout << endl;
+    }
+    cout << "]" << endl;
+}
+
+int load_sem(char *filename)
+{
+    ifstream ifs(filename);
+    string key, dummy;
+    int value;
+
+    sem.clear();
+    while ( ifs >> key >> dummy)
+    {
+        if (key.find("sizeof") != string::npos)
+            ifs >> dec >> value;
+        else
+            ifs >> hex >> value;
+        sem[key] = value;
+    }
+    ifs.close();
+    //print_sem();
+    return 0; 
+}
+
+#define vmi_for_each_process(init, p) \
+            for(p = init; p = vmi*(p + sem["task_struct->tasks"]) - sem["task_struct->tasks"], p != init; )
+/*
+void process_filetype(unsigned short m)
+{
+//    cout << " ";
+#define FTTEST(type) if (S_IS ##type (m)) cout << #type;
+    FTTEST(DIR);
+    FTTEST(CHR);
+    FTTEST(BLK);
+    FTTEST(REG);
+    FTTEST(FIFO);
+    FTTEST(LNK);
+    FTTEST(SOCK);
+}*/
+
+int process_sock(addrtype base)
+{
+    addrtype sock = vmi*(base + sem["socket->sk"]);
+    char *name = vmi.get(vmi*(sock + sem["sock->sk_prot"]) + sem["proto->name"]);
+    //cout << " 0x" << hex << sock << "; proto->name:" << name << " " << endl;
+    //cout << " " << name << " ";
+    curr_entry.proto_name.assign(name);
+    
+    
+    int64_t time_stamp = vmi.get<int64_t>(sock + sem["sock->sk_stamp"]) ;
+    //unsigned long sk_flags = vmi.get<unsigned long>(sock + sem["sock->sk_flags"]);
+    //unsigned short sk_tsflags = vmi.get<unsigned short>(sock + sem["sock->sk_tsflags"]);
+    unsigned short family = vmi.get<unsigned short>(sock + sem["sock->sk_family"]);
+    if (family == PF_INET)
+    {
+        unsigned daddr, rcv_saddr, saddr;
+        unsigned short dport, sport;
+        daddr = vmi.get<unsigned>(sock + sem["inet_sock->inet_daddr"]);
+        rcv_saddr = vmi.get<unsigned>(sock + sem["inet_sock->inet_rcv_saddr"]);
+        dport = vmi.get<unsigned short>(sock + sem["inet_sock->inet_dport"]);
+        sport = vmi.get<unsigned short>(sock + sem["inet_sock->inet_sport"]);
+        saddr = vmi.get<unsigned>(sock + sem["inet_sock->inet_saddr"]);
+
+        curr_entry.rcv_saddr = rcv_saddr;
+        curr_entry.saddr = saddr;
+        curr_entry.daddr = daddr;
+        curr_entry.sport = ntohs(sport);
+        curr_entry.dport = ntohs(dport);
+        
+        int64_t timestamp = time_stamp/1000000000;
+        curr_entry.timestamp = timestamp;
+        //cout << dec << "flags: " << sk_flags << "; tsflags: " << sk_tsflags << "; time stamp: " << timestamp << endl;
+        cout << " 0x" << hex << sock << "; proto->name:" << name << dec << "; time_stamp: " << timestamp << endl;
+        result.push_back(curr_entry);
+
+#define ntoa(x) inet_ntoa(*reinterpret_cast<in_addr *>(&(x)))
+
+        cout << hex << " saddr: " << ntoa(saddr) <<
+                dec << " sport: " << sport;
+        cout << hex << " rcv_saddr: " << ntoa(rcv_saddr);
+        cout << hex << " daddr: " << ntoa(daddr) << 
+                dec << " dport: " << dport << endl;
+
+    }
+    free(name);
+//    cout << endl;
+    return 0;
+}
+
+int process_filetype(addrtype base)
+{
+        if (!base) return -1;
+        addrtype f_inode = vmi*(base + sem["file->f_inode"]);        
+        //struct timespec access_time = vmi.get<struct timespec>(f_inode + sem["f_inode->i_atime"]);
+        //struct timespec change_time = vmi.get<struct timespec>(f_inode + sem["f_inode->i_ctime"]);
+        //struct timespec modifi_time = vmi.get<struct timespec>(f_inode + sem["f_inode->i_mtime"]);
+        //long access_time = vmi.get<long>(f_inode + sem["inode->i_atime"] + sem["timespec->tv_sec"]);
+        time_t access_time = vmi.get<time_t>(f_inode + sem["inode->i_atime"] + sem["timespec->tv_sec"]);
+        time_t change_time = vmi.get<time_t>(f_inode + sem["inode->i_ctime"] + sem["timespec->tv_sec"]);
+        time_t modifi_time = vmi.get<time_t>(f_inode + sem["inode->i_mtime"] + sem["timespec->tv_sec"]);
+        struct tm *p;
+        p = localtime(&access_time);                
+        char s[80];
+        strftime(s, 80, "%Y-%m-%d %H:%M:%S", p);                
+        cout << dec << "atime: " << access_time << "; UTC_time: " << s << endl;
+        p = localtime(&change_time);
+        strftime(s, 80, "%Y-%m-%d %H:%M:%S", p);
+        cout << dec << "ctime: " << change_time << "; UTC_time: " << s << endl;
+        p = localtime(&modifi_time);
+        strftime(s, 80, "%Y-%m-%d %H:%M:%S", p);
+        cout << dec << "mtime: " << modifi_time << "; UTC_time: " << s << endl;     
+                                        
+        addrtype fileop = vmi*(base + sem["file->f_op"]);
+        ssize_t read = vmi.get<ssize_t>(fileop + sem["file_operations->read"]);
+        ssize_t write = vmi.get<ssize_t>(fileop + sem["file_operations->write"]);
+        int open = vmi.get<int>(fileop + sem["file_operations->open"]);
+        int close = vmi.get<int>(fileop + sem["file_operations->release"]);
+        cout << dec << "read: " << read << "; write: " << write << "; open: " << open << "; close: " << close << endl;
+                    
+        addrtype dentry = vmi*(base + sem["file->f_path"] + sem["path->dentry"]);
+        if(dentry)
+        {
+                //analyse name
+                //addrtype d_inode = vmi*(dentry + sem["dentry->d_inode"]);
+                //cout << "d_inode = " << d_inode << endl;
+                //long d_id = vmi.get<long>(d_inode + sem["inode->i_ino"]);
+                //unsigned short d_mode = vmi.get<unsigned short>(d_inode + sem["inode->i_mode"]);
+                //cout << "d_id: " << d_id << " ; d_mode: " << d_mode << endl;
+                //int hash_len = vmi.get<int>(dentry + sem["dentry->d_name"] + sem["qstr->hash_len"]);
+                unsigned char *d_iname = vmi.get(dentry + sem["dentry->d_iname"]);
+                unsigned long d_time = vmi.get<unsigned long>(dentry + sem["dentry->d_time"]);;
+                cout << dec << "d_iname: " << d_iname << "; d_time: " << d_time << endl;
+        }
+
+        return 0;
+}
+
+
+int process_file(addrtype base)
+{
+    if (!base) return -1;
+    //cout << hex << "  files_struct 0x" << base << " ";
+    int i, count = vmi.get<int>(vmi*(base + sem["files_struct->fdt"]) + sem["fdtable->max_fds"]);
+    addrtype fdarray = vmi*(vmi*(base + sem["files_struct->fdt"]) + sem["fdtable->fd"]);
+    char fdset[5000] = {0};
+
+    // read fdset ( count bits )
+    addrtype fds_base = vmi*(vmi*(base + sem["files_struct->fdt"]) + sem["fdtable->open_fds"]);
+    vmi_read_va(vmi(), fds_base, 0, fdset, count / 8 + 1);
+
+    //cout << "max_fds = " << count << endl;
+    //cout << "open_fds = " << fds_base << endl;
+    //cout << "fdarray = " << fdarray << endl;
+    
+    //for (i=0; i<5000; i++)
+    //    cout << "fdset" << i << ": " << fdset << endl;
+    
+    for (i=0; i<count; i++)
+    {
+        if (fdset[i / 8] & (1 << (i % 8)))
+        {
+            addrtype f = vmi*(fdarray + i*sizeof(addrtype));
+//            cout << hex << "    [" << i << "] 0x" << f << " "
+//            cout << hex << "    [" << i << "] ";
+            if (f)
+            {
+                //analyse inode
+                addrtype inode = vmi*(f + sem["file->f_inode"]);
+                //cout << "f_inode = " << inode << endl;
+                //unsigned int f_flags = vmi.get<unsigned int>(f + sem["file->f_flags"]);
+                //unsigned long f_version = vmi.get<unsigned long>(f + sem["file->f_version"]);
+                //cout << "f_flags = " << f_flags << "; f_version = " << f_version << endl;
+                
+                if (inode)
+                {
+                    long id = vmi.get<long>(inode + sem["inode->i_ino"]);
+                    unsigned short mode = vmi.get<unsigned short>(inode + sem["inode->i_mode"]);
+                    if (S_ISREG(mode))
+                    {
+                        cout << dec << count << ". id: " << id << " ; regular file" << endl;
+                        process_filetype(f);
+                    }
+                    
+                    else if (S_ISSOCK(mode))
+                    {
+                        cout << dec << count << ". id: " << id << " ; socket communication" << endl;
+                        curr_entry.inode = inode;
+                        process_sock(vmi*(f + sem["file->private_data"]));
+                    }
+
+                }
+            }
+
+        }
+    }    
+
+    return 0;
+}
+
+/* written by liuweijie */
+int process_cr3(addrtype base)
+{
+	if (!base) return -1;
+	unsigned long pgd;
+	pgd = vmi.get<unsigned>(vmi*(base));
+	if(pgd > 0)
+	cout << hex << "pgd: 0x" << pgd << endl;
+
+	//todo: p2v
+	//todo: build a lookup table
+
+	return 0;
+}
+
+int process()
+{
+    addrtype init_addr, proc;
+    result.clear();
+
+ //   step(1, "pause VM", assert_success, {
+        vmi.pause();
+ //   });
+
+  //  step(2, "get init_task from system.map", assert_valid_ptr, {
+        init_addr = vmi_translate_ksym2v(vmi(), "init_task");
+        //cout << "init_task = 0x" << hex << init_addr << endl; init_addr;
+  //  });
+
+   // step(3, "iterate process...", _, 0);
+    vmi_for_each_process(init_addr, proc) {
+        //cout << hex << "task_struct 0x" << proc << " ";
+        int pid = vmi.get<int>(proc + sem["task_struct->pid"]);
+        //cout << "[" << "pid:" << dec << pid << "]";                //dec 10,hex 16
+
+        char *name = vmi.get(proc + sem["task_struct->comm"]);
+        //cout << "[" << "name:" << dec << name << "]";
+        int real_parent_pid = vmi.get<int>(vmi*(proc + sem["task_struct->real_parent"]) + sem["task_struct->pid"]);
+        char *real_parent_name = vmi.get(vmi*(proc + sem["task_struct->real_parent"]) + sem["task_struct->comm"]);
+        unsigned long long start_time = vmi.get<unsigned long long>(proc + sem["task_struct->real_start_time"]);
+        //int parent_pid = vmi.get<int>(vmi*(proc + sem["task_struct->parent") + sem["task_struct->pid"]);
+        //char *parent_name = vmi.get(vmi*(proc + sem["task_struct->parent") + sem["task_struct->comm"]);
+        //cout << dec << "[" << pid << "] " << name << ", [" << real_parent_pid << "] " << real_parent_name << "; start_time: " << start_time << endl;
+        cout << dec << "[" << pid << "] " << name << endl;
+
+
+/* entering mm_struct */
+	//process_cr3( vmi*(proc + sem["task_struct->mm"]) );
+        addrtype mm = vmi*(proc + sem["task_struct->mm"]);
+        //unsigned mem = vmi.get<unsigned>(mm + sem["mm_struct->total_vm"]);
+	//addrtype pgd = vmi*(mm + sem["mm_struct->pgd"]);
+	unsigned long long pgd = vmi.get<unsigned long long>(mm + sem["mm_struct->pgd"]);
+	if(pgd > 0)	printf("pgd:%llx\n", pgd);
+	//process_cr3(pgd);
+
+#if 0        
+ //       unsigned reserved = vmi.get<unsigned>(mm + sem["mm_struct->reserved_vm"]);
+        unsigned arga = vmi.get<unsigned>(mm + sem["mm_struct->arg_start"]);
+        unsigned argb = vmi.get<unsigned>(mm + sem["mm_struct->arg_end"]);
+        char *cmd = (char *)0;
+   //     cout << argb - arga << endl << "------" << endl;
+        if (argb - arga > 0)
+        {
+            cmd = vmi_read_str_va(vmi(), arga, pid);
+ //           cout << cmd << endl;
+        }
+
+   //     cout << name << " | " << (cmd ? cmd : "") << endl;
+
+        curr_entry.pid = pid;
+        curr_entry.uid = vmi.get<short>(vmi*(proc + sem["task_struct->real_cred"]) + sem["cred->uid"]);
+        curr_entry.proc_name.assign(name);
+//        curr_entry.mem = (mem - reserved) << 2;
+        curr_entry.mem = mem << 2;
+        if (cmd)
+        {
+            curr_entry.cmdline.assign(cmd);
+            free(cmd);
+        }
+     //   sleep(1);
+        free(name);
+
+        process_file(vmi*(proc + sem["task_struct->files"]));
+#endif
+
+    } //end of vmi_for_each_process
+
+
+//    step(3, "resume VM", _, {
+        vmi.resume();
+ //   });
+
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    // specify vm conf in /etc/libvmi.conf
+    
+    vmi.init(vm_name);
+    char *name = vmi_get_name(vmi());
+    unsigned long id = vmi_get_vmid(vmi());
+    //cout << "VM #" << hex << id << " " << name << endl;
+    free(name);
+    
+    //cout << "load semantic data(offsets, sizeof) from " << vm_offset << endl;
+    load_sem(vm_offset);
+    cout << "{ \"name\" : \"" << vm_name << "\", \"id\" : " << id << ", " << endl <<
+            "\"result\" : " << endl;
+    process();
+    
+/*
+    print_result();
+    cout << "}" << endl;*/
+    return 0;
+}
