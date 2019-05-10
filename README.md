@@ -34,8 +34,11 @@ In our project, we use LibVMI version 0.10.1 to run some demos.
 
 ## 3. use it!
 
-### 3.1 using LibVMI
+### 3.1 Creating a HVM guest
+Please also refer to Xen homepage...
+
+### 3.2 using LibVMI
 
 cd ./cr3lookup
 
-### 3.2 getting a ROP demo
+### 3.3 getting a ROP demo
