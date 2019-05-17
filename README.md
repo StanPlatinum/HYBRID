@@ -54,6 +54,6 @@ cd .. && make
 
 cd ./getting_lbrinfo
 
-./autogen
+./autogen1s-show.sh
 
 
