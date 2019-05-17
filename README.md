@@ -22,20 +22,25 @@ A paper in Chinese: http://jst.tsinghuajournals.com/CN/10.16511/j.cnki.qhdxxb.20
 
 For now, install Xen 4.6 seems a bit of inappropriate because the version is too old, but we only have it.
 
-Xen installing is a trivial thing but time-consuming, you may want to get some help from https://github.com/xulai1001/auto-deploy and https://github.com/xulai1001/auto-deploy/blob/master1/rake/xen.rb
+Xen installing is a trivial thing but time-consuming, you may want to get some help, you could refer to https://github.com/xulai1001/auto-deploy and https://github.com/xulai1001/auto-deploy/blob/master1/rake/xen.rb.
+
+For detailed method about installing Xen, see https://wiki.xenproject.org/wiki/Compiling_Xen_From_Source.
 
 Issues are welcomed.
 
 After finishing Xen installing, you should get a Linux (Ubuntu is the best I guess...) as guest OS.
 
-## 2. install libVMI
+## 2. install LibVMI
 
 In our project, we use LibVMI version 0.10.1 to run some demos.
 
-## 3. use it!
+For detailed method about installing LibVMI, see https://github.com/libvmi/libvmi.
+
+## 3. Run it!
 
 ### 3.1 Creating a HVM guest
-Please also refer to Xen homepage...
+
+Please also refer to Xen homepage..., https://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide.
 
 ### 3.2 using LibVMI
 
