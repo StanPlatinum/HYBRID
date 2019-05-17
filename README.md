@@ -46,4 +46,8 @@ Please also refer to Xen homepage..., https://wiki.xenproject.org/wiki/Xen_Proje
 
 cd ./cr3lookup
 
+cd ./ && make
+
+cd .. && make
+
 ### 3.3 getting a ROP demo
