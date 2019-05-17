@@ -44,10 +44,16 @@ Please also refer to Xen homepage..., https://wiki.xenproject.org/wiki/Xen_Proje
 
 ### 3.2 using LibVMI
 
-cd ./cr3lookup
-
-cd ./ && make
+cd ./cr3lookup/offset && make
 
 cd .. && make
 
-### 3.3 getting a ROP demo
+### 3.3 getting a ROP demo and run it
+
+### 4. Display it!
+
+cd ./getting_lbrinfo
+
+./autogen
+
+
