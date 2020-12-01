@@ -1,8 +1,7 @@
-# ROP-detection-in-VM
+# Detecting ROP attacks from outside
 
-This is derived from a malware detection project from our lab.
 
-Shortly, I build a kBouncer to Xen for detecting ROP attack in guest-VMs using Intel LBR.
+Shortly, it is a method of detecting ROP attack in guest-VMs using Intel LBR.
 
 --------------------------------------------------------------
 
