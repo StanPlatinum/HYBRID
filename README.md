@@ -7,15 +7,17 @@ Shortly, it is a method of detecting in-guest ROP attacks out-of-the-box, using 
 
 Usage:
 
-After make and make install, you (the clould provider) can use the commands in directory which contains some LibVMI-based programs to invoke your own CFI or other detection program. You can also use ours (e.g. CAPT and CMonitor).
+After make and make install, you (the clould provider) can use the commands in the folder which contains LibVMI-based programs to invoke your own CFI or other detection. Other VMI-IDS approaches (e.g. CAPT and CMonitor) are also supported.
 
 Useful links:
 
 CAPT http://www.cic-chinacommunications.cn/EN/abstract/abstract613.shtml
+
 CMonitor https://rd.springer.com/article/10.1007/s11859-014-1030-4
+
 A paper in Chinese: http://jst.tsinghuajournals.com/CN/10.16511/j.cnki.qhdxxb.2018.26.008 (please ignore the gramma glitches in the abstract which are not introduced by us authors...)
 
-# Detailed guild:
+# Quick start
 
 ## 1. install modified Xen provided by us
 
