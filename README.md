@@ -1,4 +1,4 @@
-# Detecting ROP attacks from outside
+# Detecting ROP (and other) attacks from outside
 
 
 Shortly, it is a method of detecting in-guest ROP attacks out-of-the-box, using Intel LBR.
