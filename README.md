@@ -1,13 +1,13 @@
 # Detecting ROP (and other) attacks from outside
 
 
-Shortly, it is a method of detecting in-guest ROP attacks out-of-the-box, using Intel LBR.
+This is an in-guest ROP detection method out-of-the-box, using Intel LBR. Check our [paper](https://ieeexplore.ieee.org/document/9796471) for more details.
 
 --------------------------------------------------------------
 
 Usage:
 
-After make and make install, you (the clould provider) can use the commands in the folder which contains LibVMI-based programs to invoke your own CFI or other detection. Other VMI-IDS approaches (e.g. CAPT and CMonitor) are also supported.
+After `make` and `make install`, you (as the cloud provider) could use the commands in the folder which contains LibVMI-based programs to invoke your own CFI or other detection. Other VMI-IDS approaches (e.g. CAPT and CMonitor) are also supported.
 
 Useful links:
 
@@ -17,39 +17,39 @@ CMonitor https://rd.springer.com/article/10.1007/s11859-014-1030-4
 
 # Quick start
 
-## 1. install modified Xen provided by us
+## Install modified Xen provided by us
 
-For now, install Xen 4.6 seems a bit of inappropriate because the version is too old, but we only have it.
+For now, installing Xen 4.6 seems a bit inappropriate because the version is too old, but we only have it.
 
 Xen installing is a trivial thing but time-consuming, you may want to get some help, you could refer to https://github.com/xulai1001/auto-deploy and https://github.com/xulai1001/auto-deploy/blob/master1/rake/xen.rb.
 
-For detailed method about installing Xen, see https://wiki.xenproject.org/wiki/Compiling_Xen_From_Source.
+For more about installing Xen, see https://wiki.xenproject.org/wiki/Compiling_Xen_From_Source.
 
 Issues are welcomed.
 
-After finishing Xen installing, you should get a Linux (Ubuntu is the best I guess...) as guest OS.
+After finishing Xen installation, you might want to get a Linux (Ubuntu is the best I guess...) guest OS.
 
-## 2. install LibVMI
+## Install LibVMI
 
 In our project, we use LibVMI version 0.10.1 to run some demos.
 
-For detailed method about installing LibVMI, see https://github.com/libvmi/libvmi.
+For more about installing LibVMI, see https://github.com/libvmi/libvmi.
 
-## 3. Run it!
+## Run it!
 
-### 3.1 Creating a HVM guest
+### Creating HVM guest
 
 Please also refer to Xen homepage..., https://wiki.xenproject.org/wiki/Xen_Project_Beginners_Guide.
 
-### 3.2 using LibVMI
+### Using LibVMI
 
 cd ./cr3lookup/offset && make
 
 cd .. && make
 
-### 3.3 getting a ROP demo and run it
+### Getting a ROP demo and running it
 
-### 4. Display it!
+### Display it!
 
 cd ./getting_lbrinfo
 
